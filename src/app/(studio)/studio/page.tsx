@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import { DEFAULT_LIMIT } from "@/constants";
 import VideosSection from "@/sections/VideosSection";
-//import StudioView from "@/modules/studio/ui/views/StudioView";
 import { HydrateClient, trpc } from "@/trpc/server";
 
 export default async function page() {

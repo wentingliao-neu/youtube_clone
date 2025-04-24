@@ -1,7 +1,6 @@
 import HomeNavbar from "@/components/home/home-navbar";
 import HomeSidebar from "@/components/home/home-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-//import { HomeLayout } from "@/modules/home/ui/layouts/HomeLayout";
 
 interface Props {
    children: React.ReactNode;

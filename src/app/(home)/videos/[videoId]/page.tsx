@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-//import VideoView from "@/modules/videos/ui/views/VideoView";
+
 import { DEFAULT_LIMIT } from "@/constants";
 import CommentsSection from "@/sections/CommentsSection";
 import SuggestionsSection from "@/sections/SuggestionsSection";

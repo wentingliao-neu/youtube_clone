@@ -210,7 +210,7 @@ export default function CommentItem({ comment }: CommentItemProps) {
                >
                   {isRepliesOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
                   {comment.replyCount}
-                  {comment.replyCount > 1 ? "Replies" : "Reply"}
+                  {comment.replyCount > 1 ? " Replies" : " Reply"}
                </Button>
             </div>
          )}
