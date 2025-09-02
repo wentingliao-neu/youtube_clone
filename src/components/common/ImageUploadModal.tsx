@@ -7,6 +7,7 @@ interface ImageUploadModalProps {
    onOpenChange: (open: boolean) => void;
    videoId?: string;
    userId?: string | null;
+   streamId?: string;
    modalType: "video" | "banner" | "room";
 }
 
@@ -15,6 +16,7 @@ export default function ImageUploadModal({
    onOpenChange,
    videoId,
    userId,
+   streamId,
    modalType,
 }: ImageUploadModalProps) {
    const utils = trpc.useUtils();
@@ -34,7 +36,7 @@ export default function ImageUploadModal({
                ? "Upload Thumbnail"
                : modalType === "banner"
                ? "Upload a banner"
-               : "Upload Image"
+               : "Upload Thumbnail for Stream"
          }
          open={open}
          onOpenChange={onOpenChange}
@@ -52,9 +54,10 @@ export default function ImageUploadModal({
                onClientUploadComplete={onSuccess}
             />
          )}
-         {userId && modalType === "room" && (
+         {streamId && modalType === "room" && (
             <UploadDropzone
                endpoint="roomThumbnailUploader"
+               input={{ streamId }}
                onClientUploadComplete={onSuccess}
             />
          )}

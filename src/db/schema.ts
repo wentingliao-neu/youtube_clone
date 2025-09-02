@@ -2,6 +2,7 @@
 import {
    foreignKey,
    integer,
+   boolean,
    pgEnum,
    pgTable,
    primaryKey,
@@ -20,6 +21,11 @@ import {
 export const videoVisibility = pgEnum("video_visibility", [
    "public",
    "private",
+]);
+
+export const streamVisibility = pgEnum("stream_visibility", [
+   "public",
+   "subscribers",
 ]);
 
 export const users = pgTable(
@@ -227,6 +233,51 @@ export const playlistVideos = pgTable(
       primaryKey({
          name: "playlist_videos_pk",
          columns: [t.playlistId, t.videoId],
+      }),
+   ]
+);
+
+export const streams = pgTable("streams", {
+   id: uuid("id").primaryKey().defaultRandom(),
+   name: text("name").notNull(),
+   description: text("description"),
+   userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+   isLive: boolean("is_live").default(false).notNull(),
+   subTitleGenerated: boolean("sub_title_generated").default(false).notNull(),
+   thumbnailKey: text("thumbnail_key"),
+   thumbnailUrl: text("thumbnail_url"),
+   muxStreamId: text("mux_stream_id").unique(),
+   streamKey: text("stream_key").notNull(),
+   srtPassphrase: text("srt_passphrase").default(""),
+   visibility: streamVisibility("visibility").notNull().default("public"),
+   playbackId: text("playback_id").notNull(),
+   publicToken: text("public_token").default(""),
+   createdAt: timestamp("created_at").notNull().defaultNow(),
+   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const streamUpdateSchema = createUpdateSchema(streams);
+export const streamInsertSchema = createInsertSchema(streams);
+export const streamSelectSchema = createSelectSchema(streams);
+
+export const blocks = pgTable(
+   "blocks",
+   {
+      blockerId: uuid("blocker_id")
+         .notNull()
+         .references(() => users.id, { onDelete: "cascade" }),
+      blockedId: uuid("blocked_id")
+         .notNull()
+         .references(() => users.id, { onDelete: "cascade" }),
+      createdAt: timestamp("created_at").notNull().defaultNow(),
+      updatedAt: timestamp("updated_at").notNull().defaultNow(),
+   },
+   (t) => [
+      primaryKey({
+         name: "blocks_pk",
+         columns: [t.blockerId, t.blockedId],
       }),
    ]
 );

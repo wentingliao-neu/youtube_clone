@@ -6,6 +6,7 @@ import UserPageBanner, {
 import UserPageInfo, {
    UserPageInfoSkeleton,
 } from "@/components/users/UserPageInfo";
+import { useRouter } from "next/navigation";
 import { trpc } from "@/trpc/client";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
@@ -27,6 +28,9 @@ function UserSectionSuspense({ userId }: UserSectionProps) {
    const [user] = trpc.users.getOne.useSuspenseQuery({
       id: userId,
    });
+   const router = useRouter();
+   if (user.viewerBeBlocked) router.push("/not-found");
+
    return (
       <div className="flex flex-col ">
          <UserPageBanner user={user} />

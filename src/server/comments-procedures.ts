@@ -1,5 +1,5 @@
 import db from "@/db";
-import { commentReactions, comments, users } from "@/db/schema";
+import { blocks, commentReactions, comments, users } from "@/db/schema";
 import {
    baseProcedure,
    createTRPCRouter,
@@ -164,6 +164,7 @@ export const commentsRouter = createTRPCRouter({
                .where(
                   and(
                      eq(comments.videoId, videoId),
+                     isNull(blocks.blockedId), // 如果当前用户屏蔽了这条评论的发起者，当前用户看不到这条评论
                      parentId
                         ? eq(comments.parentId, parentId)
                         : isNull(comments.parentId),
@@ -184,6 +185,13 @@ export const commentsRouter = createTRPCRouter({
                   eq(viewerReactions.commentId, comments.id)
                )
                .leftJoin(repliesCount, eq(repliesCount.parentId, comments.id))
+               .leftJoin(
+                  blocks,
+                  and(
+                     eq(blocks.blockerId, userId || ""),
+                     eq(blocks.blockedId, comments.userId)
+                  )
+               )
                .orderBy(desc(comments.updatedAt), desc(comments.id))
                .limit(limit + 1),
          ]);

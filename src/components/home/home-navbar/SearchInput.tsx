@@ -45,7 +45,7 @@ function SearchInputSuspense() {
                   type="button"
                   variant={"ghost"}
                   size={"icon"}
-                  className=" absolute right-2 top-1.5 h-full rounded-full -translate-y-1/2"
+                  className="absolute right-2 h-full rounded-full "
                >
                   <XIcon className=" text-gray-500" />
                </Button>

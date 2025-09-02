@@ -1,6 +1,7 @@
 import db from "@/db";
 import {
    comments,
+   streams,
    users,
    videoReactions,
    videos,
@@ -28,6 +29,17 @@ export const studioRouter = createTRPCRouter({
          }
          return video;
       }),
+
+   getStream: protectedProcedure.query(async ({ ctx }) => {
+      const { id: userId } = ctx.user;
+
+      const [stream] = await db
+         .select()
+         .from(streams)
+         .where(eq(streams.userId, userId));
+
+      return stream ?? null;
+   }),
    getMany: protectedProcedure
       .input(
          z.object({

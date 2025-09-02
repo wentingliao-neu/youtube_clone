@@ -1,8 +1,18 @@
 import db from "@/db";
-import { users, videoReactions, videos, videoViews } from "@/db/schema";
+import { blocks, users, videoReactions, videos, videoViews } from "@/db/schema";
 import { createTRPCRouter, baseProcedure } from "@/trpc/init";
 
-import { eq, and, or, lt, desc, ilike, getTableColumns } from "drizzle-orm";
+import {
+   eq,
+   and,
+   or,
+   lt,
+   desc,
+   ilike,
+   getTableColumns,
+   inArray,
+   notExists,
+} from "drizzle-orm";
 import { z } from "zod";
 export const searchRouter = createTRPCRouter({
    getMany: baseProcedure
@@ -16,8 +26,17 @@ export const searchRouter = createTRPCRouter({
             limit: z.number().min(1).max(10).default(5),
          })
       )
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
          const { cursor, limit, query, categoryId } = input;
+         const { clerkUserId } = ctx;
+         let currentUserId;
+         if (clerkUserId) {
+            const [user] = await db
+               .select()
+               .from(users)
+               .where(inArray(users.clerkId, clerkUserId ? [clerkUserId] : []));
+            if (user) currentUserId = user.id;
+         }
 
          const data = await db
             .select({
@@ -44,10 +63,24 @@ export const searchRouter = createTRPCRouter({
             })
             .from(videos)
             .innerJoin(users, eq(users.id, videos.userId))
+            .leftJoin(blocks, eq(blocks.blockedId, videos.userId))
             .where(
                and(
                   ilike(videos.title, `%${query}%`),
                   categoryId ? eq(videos.categoryId, categoryId) : undefined,
+                  currentUserId
+                     ? notExists(
+                          db
+                             .select()
+                             .from(blocks)
+                             .where(
+                                and(
+                                   eq(blocks.blockerId, currentUserId),
+                                   eq(blocks.blockedId, videos.userId)
+                                )
+                             )
+                       )
+                     : undefined,
                   eq(videos.visibility, "public"),
                   cursor
                      ? or(

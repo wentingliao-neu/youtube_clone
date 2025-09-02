@@ -49,13 +49,13 @@ import Link from "next/link";
 import { snakeToTitle } from "@/lib/utils";
 import Image from "next/image";
 import { THUMBNAIL_FALLBACK } from "@/constants";
-import ThumbnailUploadModal from "@/components/studio/ThumbnailUploadModal";
 import { useRouter } from "next/navigation";
 import { TRPCClientErrorLike } from "@trpc/client";
 import { UseTRPCMutationResult } from "@trpc/react-query/shared";
 import { DefaultErrorShape } from "@trpc/server/unstable-core-do-not-import";
 import ThumbnailGenerateModal from "@/components/studio/ThumbnailGenerateModal";
 import { Skeleton } from "@/components/ui/skeleton";
+import ImageUploadModal from "@/components/common/ImageUploadModal";
 
 interface FormSectionProps {
    videoId: string;
@@ -172,7 +172,8 @@ function FormSectionSuspense({ videoId }: FormSectionProps) {
       useState(false);
    return (
       <>
-         <ThumbnailUploadModal
+         <ImageUploadModal
+            modalType="video"
             open={thumbnailModalOpen}
             onOpenChange={setThumbnailModalOpen}
             videoId={videoId}

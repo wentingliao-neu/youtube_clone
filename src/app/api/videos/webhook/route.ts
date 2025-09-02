@@ -1,14 +1,21 @@
 import db from "@/db";
-import { videos } from "@/db/schema";
+import { streams, users, videos } from "@/db/schema";
 import { mux } from "@/lib/mux";
+import { pusher } from "@/lib/pusher";
+import { streamClient } from "@/lib/stream";
 import {
    VideoAssetCreatedWebhookEvent,
    VideoAssetErroredWebhookEvent,
    VideoAssetReadyWebhookEvent,
    VideoAssetTrackReadyWebhookEvent,
    VideoAssetDeletedWebhookEvent,
+   VideoLiveStreamActiveWebhookEvent,
+   VideoLiveStreamIdleWebhookEvent,
+   VideoLiveStreamConnectedWebhookEvent,
+   VideoAssetLiveStreamCompletedWebhookEvent,
+   VideoLiveStreamDisconnectedWebhookEvent,
 } from "@mux/mux-node/resources/webhooks.mjs";
-import { eq } from "drizzle-orm";
+import { eq, getTableColumns } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { UTApi } from "uploadthing/server";
@@ -20,7 +27,12 @@ type WebhookEvent =
    | VideoAssetReadyWebhookEvent
    | VideoAssetErroredWebhookEvent
    | VideoAssetTrackReadyWebhookEvent
-   | VideoAssetDeletedWebhookEvent;
+   | VideoAssetDeletedWebhookEvent
+   | VideoLiveStreamConnectedWebhookEvent
+   | VideoLiveStreamActiveWebhookEvent
+   | VideoLiveStreamIdleWebhookEvent
+   | VideoAssetLiveStreamCompletedWebhookEvent
+   | VideoLiveStreamDisconnectedWebhookEvent;
 export const POST = async (req: Request) => {
    if (!SIGNING_SECRET)
       return NextResponse.json(
@@ -162,6 +174,127 @@ export const POST = async (req: Request) => {
                muxTrackStatus: status,
             })
             .where(eq(videos.muxAssetId, assetId));
+         break;
+      }
+
+      case "video.live_stream.active": {
+         const data = payload.data as VideoLiveStreamActiveWebhookEvent["data"];
+         if (!data.stream_key)
+            return NextResponse.json(
+               { message: "No stream_key in payload" },
+               { status: 400 }
+            );
+
+         const [stream] = await db
+            .select({
+               ...getTableColumns(streams),
+               userClerkId: users.clerkId,
+               userName: users.name,
+               userImage: users.imageUrl,
+            })
+            .from(streams)
+            .innerJoin(users, eq(streams.userId, users.id))
+            .where(eq(streams.streamKey, data.stream_key))
+            .limit(1);
+
+         if (!stream)
+            return NextResponse.json(
+               { message: "Stream not found" },
+               { status: 404 }
+            );
+
+         const token =
+            stream.visibility === "public"
+               ? await mux.jwt.signPlaybackId(stream.playbackId, {
+                    keyId: process.env.MUX_SIGNING_KEY_ID,
+                    keySecret: process.env.MUX_SIGNING_SECRET,
+                    expiration: "12h",
+                 })
+               : "";
+         await db
+            .update(streams)
+            .set({
+               isLive: true,
+               publicToken: token,
+            })
+            .where(eq(streams.streamKey, data.stream_key));
+         const channel = streamClient.channel("messaging", stream.id);
+         try {
+            await channel.truncate({ hard_delete: true });
+            const members = Object.keys(channel.state.members);
+            if (members.length > 0) await channel.removeMembers(members);
+            await channel.update({ frozen: false });
+         } catch {
+            console.error("error in update channel");
+         }
+
+         try {
+            await pusher.trigger(`stream-${stream.id}`, "statusChanged", {
+               isLive: true,
+            });
+            console.log("triggered pusher", `stream-${stream.id}`);
+         } catch (error) {
+            console.error("error in trigger pusher", error);
+         }
+
+         break;
+      }
+
+      case "video.live_stream.disconnected": {
+         const data =
+            payload.data as VideoLiveStreamDisconnectedWebhookEvent["data"];
+         if (!data.stream_key)
+            return NextResponse.json(
+               { message: "No stream_key in payload" },
+               { status: 400 }
+            );
+         const [stream] = await db
+            .update(streams)
+            .set({
+               isLive: false,
+               publicToken: "",
+            })
+            .where(eq(streams.streamKey, data.stream_key))
+            .returning();
+         if (!stream)
+            return NextResponse.json(
+               { message: "Stream not found" },
+               { status: 404 }
+            );
+         try {
+            const channel = streamClient.channel("messaging", stream.id);
+            await channel.update({ frozen: true });
+         } catch (error) {
+            console.error(error);
+         }
+         await pusher.trigger(`stream-${stream.id}`, "statusChanged", {
+            isLive: false,
+         });
+         break;
+      }
+
+      case "video.asset.live_stream_completed": {
+         const data =
+            payload.data as VideoAssetLiveStreamCompletedWebhookEvent["data"];
+         if (!data.id || !data.live_stream_id)
+            return NextResponse.json(
+               { message: "No id in payload" },
+               { status: 400 }
+            );
+         try {
+            const auth = Buffer.from(
+               `${process.env.MUX_TOKEN_ID}:${process.env.MUX_TOKEN_SECRET}`
+            ).toString("base64");
+            await fetch(`https://api.mux.com/video/v1/assets/${data.id}`, {
+               method: "DELETE",
+               headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Basic ${auth}`,
+               },
+            });
+         } catch (error) {
+            console.error("failed to delete stream video asset in mux", error);
+         }
          break;
       }
    }

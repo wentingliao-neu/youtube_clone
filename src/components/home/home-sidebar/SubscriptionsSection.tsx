@@ -12,7 +12,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { DEFAULT_LIMIT } from "@/constants";
 import { trpc } from "@/trpc/client";
-import { ListIcon } from "lucide-react";
+import { ListIcon, Radio } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -33,31 +33,41 @@ export default function SubscriptionsSection() {
                {!isLoading &&
                   data?.pages
                      .flatMap((page) => page.items)
-                     .map((item) => (
-                        <SidebarMenuItem
-                           key={`${item.creatorId}-${item.viewerId}`}
-                        >
-                           <SidebarMenuButton
-                              tooltip={item.user.name}
-                              asChild
-                              isActive={pathname === `/users/${item.user.id}`}
+                     .map((item) => {
+                        return (
+                           <SidebarMenuItem
+                              key={`${item.creatorId}-${item.viewerId}`}
                            >
-                              <Link
-                                 href={`/users/${item.user.id}`}
-                                 className=" flex items-center gap-4"
+                              <SidebarMenuButton
+                                 tooltip={item.user.name}
+                                 asChild
+                                 isActive={
+                                    pathname === `/users/${item.user.id}`
+                                 }
                               >
-                                 <UserAvatar
-                                    size={"xs"}
-                                    imageUrl={item.user.imageUrl}
-                                    name={item.user.name}
-                                 />
-                                 <span className=" text-sm">
-                                    {item.user.name}
-                                 </span>
-                              </Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                     ))}
+                                 <Link
+                                    href={`/users/${item.user.id}`}
+                                    className=" flex items-center gap-4"
+                                 >
+                                    <UserAvatar
+                                       size={"sm"}
+                                       imageUrl={item.user.imageUrl}
+                                       name={item.user.name}
+                                    />
+                                    <span className=" text-sm">
+                                       {item.user.name}
+                                    </span>
+                                    {item.user.isLive && (
+                                       <div className=" px-1 gap-1 py-0.5 rounded bg-rose-500 text-white text-xs font-medium flex items-center ">
+                                          <Radio className="size-4" />
+                                          Live
+                                       </div>
+                                    )}
+                                 </Link>
+                              </SidebarMenuButton>
+                           </SidebarMenuItem>
+                        );
+                     })}
 
                {!isLoading && (
                   <SidebarMenuItem>

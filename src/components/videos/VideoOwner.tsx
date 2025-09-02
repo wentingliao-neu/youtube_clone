@@ -9,14 +9,22 @@ import UserInfo from "../users/UserInfo";
 
 interface VideoOwnerProps {
    user: VideoGetOneOutput["user"];
-   videoId: string;
+   type: "video" | "stream";
+   videoId?: string;
+   streamId?: string;
 }
-export default function VideoOwner({ user, videoId }: VideoOwnerProps) {
+export default function VideoOwner({
+   user,
+   type,
+   videoId,
+   streamId,
+}: VideoOwnerProps) {
    const { userId, isLoaded } = useAuth();
    const { isPending, onClick } = useSubscription({
-      userId: user.clerkId,
+      userId: user.id,
       isSubscribed: user.viewerSubscribed,
       fromVideoId: videoId,
+      fromStreamId: streamId,
    });
 
    return (
@@ -38,8 +46,15 @@ export default function VideoOwner({ user, videoId }: VideoOwnerProps) {
          </Link>
          {userId === user.clerkId ? (
             <Button className=" rounded-full" asChild variant={"secondary"}>
-               <Link prefetch href={`/studio/videos/${videoId}`}>
-                  Edit Video
+               <Link
+                  prefetch
+                  href={
+                     type === "video"
+                        ? `/studio/videos/${videoId}`
+                        : `/studio/stream`
+                  }
+               >
+                  Edit {type === "video" ? "Video" : "Stream"}
                </Link>
             </Button>
          ) : (

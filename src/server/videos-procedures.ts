@@ -1,5 +1,6 @@
 import db from "@/db";
 import {
+   blocks,
    subscriptions,
    users,
    videoReactions,
@@ -24,6 +25,7 @@ import {
    isNotNull,
    lt,
    or,
+   notExists,
 } from "drizzle-orm";
 
 import { UTApi } from "uploadthing/server";
@@ -316,8 +318,18 @@ export const videosRouter = createTRPCRouter({
             limit: z.number().min(1).max(10).default(5),
          })
       )
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
          const { cursor, limit, categoryId, isTrending, userId } = input;
+
+         const { clerkUserId } = ctx;
+         let currentUserId;
+         if (clerkUserId) {
+            const [user] = await db
+               .select()
+               .from(users)
+               .where(inArray(users.clerkId, clerkUserId ? [clerkUserId] : []));
+            if (user) currentUserId = user.id;
+         }
 
          const viewCountSubquery = db.$count(
             videoViews,
@@ -351,6 +363,19 @@ export const videosRouter = createTRPCRouter({
                   categoryId ? eq(videos.categoryId, categoryId) : undefined,
                   userId ? eq(videos.userId, userId) : undefined,
                   eq(videos.visibility, "public"),
+                  currentUserId
+                     ? notExists(
+                          db
+                             .select()
+                             .from(blocks)
+                             .where(
+                                and(
+                                   eq(blocks.blockerId, currentUserId),
+                                   eq(blocks.blockedId, videos.userId)
+                                )
+                             )
+                       )
+                     : undefined,
                   cursor
                      ? isTrending
                         ? or(
@@ -382,68 +407,6 @@ export const videosRouter = createTRPCRouter({
                  id: lastItem.id,
                  viewCount: lastItem.viewCount,
               }
-            : null;
-         return { items, nextCursor };
-      }),
-
-   getTrending: baseProcedure
-      .input(
-         z.object({
-            cursor: z
-               .object({ viewCount: z.number(), id: z.string().uuid() })
-               .nullish(),
-            limit: z.number().min(1).max(10).default(5),
-         })
-      )
-      .query(async ({ input }) => {
-         const { cursor, limit } = input;
-
-         const viewCountSubquery = db.$count(
-            videoViews,
-            eq(videoViews.videoId, videos.id)
-         );
-
-         const data = await db
-            .select({
-               ...getTableColumns(videos),
-               viewCount: viewCountSubquery,
-               user: users,
-               likeCount: db.$count(
-                  videoReactions,
-                  and(
-                     eq(videoReactions.videoId, videos.id),
-                     eq(videoReactions.type, "like")
-                  )
-               ),
-               dislikeCount: db.$count(
-                  videoReactions,
-                  and(
-                     eq(videoReactions.videoId, videos.id),
-                     eq(videoReactions.type, "dislike")
-                  )
-               ),
-            })
-            .from(videos)
-            .innerJoin(users, eq(users.id, videos.userId))
-            .where(
-               and(
-                  //categoryId ? eq(videos.categoryId, categoryId) : undefined,
-                  eq(videos.visibility, "public"),
-                  cursor
-                     ? or(
-                          lt(viewCountSubquery, cursor.viewCount),
-                          and(eq(viewCountSubquery, cursor.viewCount))
-                       )
-                     : undefined
-               )
-            )
-            .orderBy(desc(viewCountSubquery), desc(videos.id))
-            .limit(limit + 1);
-         const haseMore = data.length > limit;
-         const items = haseMore ? data.slice(0, -1) : data;
-         const lastItem = items[items.length - 1];
-         const nextCursor = haseMore
-            ? { viewCount: lastItem.viewCount, id: lastItem.id }
             : null;
          return { items, nextCursor };
       }),
@@ -507,6 +470,17 @@ export const videosRouter = createTRPCRouter({
             .where(
                and(
                   eq(videos.visibility, "public"),
+                  notExists(
+                     db
+                        .select()
+                        .from(blocks)
+                        .where(
+                           and(
+                              eq(blocks.blockerId, userId),
+                              eq(blocks.blockedId, videos.userId)
+                           )
+                        )
+                  ),
                   cursor
                      ? or(
                           lt(videos.updatedAt, cursor.updatedAt),

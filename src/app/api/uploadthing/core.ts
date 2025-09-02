@@ -1,5 +1,5 @@
 import db from "@/db";
-import { users, videos } from "@/db/schema";
+import { streams, users, videos } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { and, eq } from "drizzle-orm";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
@@ -104,40 +104,52 @@ export const ourFileRouter = {
          // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
          return { uploadedBy: metadata.userId };
       }),
+
    roomThumbnailUploader: f({
       image: {
          maxFileSize: "4MB",
          maxFileCount: 1,
       },
    })
-      .middleware(async () => {
+      .input(z.object({ streamId: z.string().uuid() }))
+      .middleware(async ({ input }) => {
          const { userId: clerkUserId } = await auth();
 
          if (!clerkUserId) throw new UploadThingError("Unauthorized");
-
          const [user] = await db
             .select()
             .from(users)
             .where(eq(users.clerkId, clerkUserId));
-
          if (!user) throw new UploadThingError("Not found");
-         if (user.bannerKey) {
+         const [stream] = await db
+            .select()
+            .from(streams)
+            .where(
+               and(eq(streams.id, input.streamId), eq(streams.userId, user.id))
+            );
+
+         if (stream.thumbnailKey) {
             const utapi = new UTApi();
-            await utapi.deleteFiles(user.bannerKey);
+            await utapi.deleteFiles(stream.thumbnailKey);
             await db
-               .update(users)
-               .set({ bannerKey: null, bannerUrl: null })
+               .update(streams)
+               .set({ thumbnailKey: null, thumbnailUrl: null })
                .where(eq(users.clerkId, clerkUserId));
          }
 
-         return { userId: user.id };
+         return { streamId: stream.id, userId: user.id };
       })
       .onUploadComplete(async ({ metadata, file }) => {
          // This code RUNS ON YOUR SERVER after upload
          await db
-            .update(users)
-            .set({ bannerUrl: file.ufsUrl, bannerKey: file.key })
-            .where(eq(videos.userId, metadata.userId));
+            .update(streams)
+            .set({ thumbnailUrl: file.ufsUrl, thumbnailKey: file.key })
+            .where(
+               and(
+                  eq(streams.id, metadata.streamId),
+                  eq(streams.userId, metadata.userId)
+               )
+            );
 
          // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
          return { uploadedBy: metadata.userId };

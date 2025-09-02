@@ -6,6 +6,8 @@ interface VideoPlayerProps {
    thumbnail?: string | null | undefined;
    autoPlay?: boolean;
    onPlay?: () => void;
+   token?: string | undefined;
+   onError?: () => void;
 }
 
 export default function VideoPlayer({
@@ -13,11 +15,19 @@ export default function VideoPlayer({
    thumbnail,
    autoPlay,
    onPlay,
+   token,
+   onError,
 }: VideoPlayerProps) {
+   console.log("playbackId", playbackId, token);
    return (
-      playbackId && (
+      playbackId &&
+      token && (
          <MuxPlayer
             playbackId={playbackId}
+            tokens={{
+               playback: token,
+            }}
+            onError={onError}
             poster={thumbnail || THUMBNAIL_FALLBACK}
             playerInitTime={0}
             autoPlay={autoPlay}

@@ -13,3 +13,9 @@ export type PlaylistsGetManyOutput =
    inferRouterOutputs<AppRouter>["playlists"]["getMany"]["items"];
 
 export type UserGetOneOutput = inferRouterOutputs<AppRouter>["users"]["getOne"];
+
+export type StreamGetManyOutput =
+   inferRouterOutputs<AppRouter>["streams"]["getMany"]["items"];
+
+export type StreamGetOneOutput =
+   inferRouterOutputs<AppRouter>["streams"]["getOneByUserId"];

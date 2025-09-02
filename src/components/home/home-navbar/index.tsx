@@ -1,9 +1,15 @@
+"use client";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import Link from "next/link";
 import Image from "next/image";
 import SearchInput from "./SearchInput";
-import AuthButton from "@/components/auth/AuthButton";
-
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+//import AuthButton from "@/components/auth/AuthButton";
+const AuthButton = dynamic(() => import("@/components/auth/AuthButton"), {
+   ssr: false,
+   loading: () => <Skeleton className="size-8 rounded-full" />,
+});
 export default function HomeNavbar() {
    return (
       <nav className=" fixed top-0 right-0 left-0 h-16 bg-white flex items-center px-2 pr-5 z-50">

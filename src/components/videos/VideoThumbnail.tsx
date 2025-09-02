@@ -26,7 +26,7 @@ export default function VideoThumbnail({
             />
 
             <Image
-               src={`${previewUrl}?width=144` || THUMBNAIL_FALLBACK}
+               src={previewUrl ? `${previewUrl}?width=144` : THUMBNAIL_FALLBACK}
                alt={title}
                fill
                unoptimized

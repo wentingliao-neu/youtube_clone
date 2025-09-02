@@ -4,6 +4,7 @@ import { WebhookEvent } from "@clerk/nextjs/server";
 import db from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { streamClient } from "@/lib/stream";
 
 export async function POST(req: Request) {
    const SIGNING_SECRET = process.env.CLERK_SIGNING_SECRET;
@@ -62,6 +63,14 @@ export async function POST(req: Request) {
          name: `${first_name} ${last_name}`,
          imageUrl: image_url,
       });
+
+      await streamClient.upsertUsers([
+         {
+            id,
+            name: `${first_name} ${last_name}`,
+            image: image_url,
+         },
+      ]);
    } else if (eventType === "user.deleted") {
       const { id } = evt.data;
       if (!id)
@@ -69,6 +78,7 @@ export async function POST(req: Request) {
             status: 400,
          });
       await db.delete(users).where(eq(users.clerkId, id));
+      await streamClient.deleteUser(id);
    } else if (eventType === "user.updated") {
       const { id, first_name, last_name, image_url } = evt.data;
       await db
@@ -78,6 +88,14 @@ export async function POST(req: Request) {
             imageUrl: image_url,
          })
          .where(eq(users.clerkId, id));
+
+      await streamClient.upsertUsers([
+         {
+            id,
+            name: `${first_name} ${last_name}`,
+            image: image_url,
+         },
+      ]);
    }
 
    return new Response("Webhook received", { status: 200 });
