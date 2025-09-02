@@ -56,16 +56,28 @@ export const usersRouter = createTRPCRouter({
                viewerSubscribed: isNotNull(
                   viewerSubscriptions.viewerId
                ).mapWith(Boolean),
-               viewerBlocked: sql<boolean>`EXISTS(
-                  SELECT 1 FROM ${blocks} 
-                  WHERE ${blocks.blockerId} = ${userId || null} 
-                  AND ${blocks.blockedId} = ${users.id}
-               )`.mapWith(Boolean),
-               viewerBeBlocked: sql<boolean>`EXISTS(
-                  SELECT 1 FROM ${blocks} 
-                  WHERE ${blocks.blockerId} = ${users.id} 
-                  AND ${blocks.blockedId} = ${userId || null}
-               )`.mapWith(Boolean),
+               viewerBlocked: userId
+                  ? db
+                       .$count(
+                          blocks,
+                          and(
+                             eq(blocks.blockerId, userId),
+                             eq(blocks.blockedId, users.id)
+                          )
+                       )
+                       .mapWith((count) => count > 0)
+                  : sql<boolean>`false`.mapWith(Boolean),
+               viewerBeBlocked: userId
+                  ? db
+                       .$count(
+                          blocks,
+                          and(
+                             eq(blocks.blockerId, users.id),
+                             eq(blocks.blockedId, userId)
+                          )
+                       )
+                       .mapWith((count) => count > 0)
+                  : sql<boolean>`false`.mapWith(Boolean),
                videoCount: db.$count(videos, eq(videos.userId, users.id)),
 
                isLive: sql<boolean>`COALESCE(${streams.isLive}, false)`.mapWith(

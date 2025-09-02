@@ -63,7 +63,6 @@ export const searchRouter = createTRPCRouter({
             })
             .from(videos)
             .innerJoin(users, eq(users.id, videos.userId))
-            .leftJoin(blocks, eq(blocks.blockedId, videos.userId))
             .where(
                and(
                   ilike(videos.title, `%${query}%`),

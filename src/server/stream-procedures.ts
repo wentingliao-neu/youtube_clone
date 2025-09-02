@@ -23,6 +23,7 @@ import {
    or,
    inArray,
    isNotNull,
+   notExists,
 } from "drizzle-orm";
 import { mux } from "@/lib/mux";
 import { streamClient } from "@/lib/stream";
@@ -117,15 +118,31 @@ export const streamsRouter = createTRPCRouter({
                eq(streams.userId, viewerSubscriptions.creatorId)
             )
             .where(
-               cursor
-                  ? or(
-                       lt(streams.updatedAt, cursor.updatedAt),
-                       and(
-                          eq(streams.updatedAt, cursor.updatedAt),
-                          lt(streams.id, cursor.id)
+               and(
+                  // 排除被当前用户屏蔽的直播流
+                  userId
+                     ? notExists(
+                          db
+                             .select()
+                             .from(blocks)
+                             .where(
+                                and(
+                                   eq(blocks.blockerId, userId),
+                                   eq(blocks.blockedId, streams.userId)
+                                )
+                             )
                        )
-                    )
-                  : undefined
+                     : undefined,
+                  cursor
+                     ? or(
+                          lt(streams.updatedAt, cursor.updatedAt),
+                          and(
+                             eq(streams.updatedAt, cursor.updatedAt),
+                             lt(streams.id, cursor.id)
+                          )
+                       )
+                     : undefined
+               )
             )
             .orderBy(
                desc(streams.isLive),
