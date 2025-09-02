@@ -18,10 +18,8 @@ export default function VideoPlayer({
    token,
    onError,
 }: VideoPlayerProps) {
-   console.log("playbackId", playbackId, token);
    return (
-      playbackId &&
-      token && (
+      playbackId && (
          <MuxPlayer
             playbackId={playbackId}
             tokens={{

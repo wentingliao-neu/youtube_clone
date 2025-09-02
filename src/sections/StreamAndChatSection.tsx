@@ -5,7 +5,6 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import StreamSection from "./StreamSection";
 import { useAuth } from "@clerk/nextjs";
 import { ChatRoomSkeleton } from "./ChatSection";
-import { useConnect } from "@/hooks/use-connect";
 import { ErrorBoundary } from "react-error-boundary";
 import { VideoPlayerSkeleton } from "@/components/videos/VideoPlayer";
 import { VideoTopRowSkeleton } from "@/components/videos/VideoTopRow";
@@ -25,7 +24,6 @@ function StreamAndChatSectionSuspense({ streamerId }: { streamerId: string }) {
       id: streamerId,
    });
    const utils = trpc.useUtils();
-   const { isConnected } = useConnect(stream.id);
    const { client, channel, reset } = useStreamChatStore();
    const { userId } = useAuth();
    const pusher = useRef<Pusher | null>(null);
@@ -61,7 +59,7 @@ function StreamAndChatSectionSuspense({ streamerId }: { streamerId: string }) {
    }, [streamerId, stream.isLive, stream.visibility]);
 
    useEffect(() => {
-      if (!client || !isConnected) return;
+      if (!client?.user) return;
 
       listenerRef.current = client?.on("user.banned", (event) => {
          if (
@@ -78,7 +76,7 @@ function StreamAndChatSectionSuspense({ streamerId }: { streamerId: string }) {
          channel?.stopWatching();
          reset();
       };
-   }, [isConnected, streamerId, client]);
+   }, [streamerId, client]);
 
    useEffect(() => {
       if (!pusher.current)
@@ -116,6 +114,7 @@ function StreamAndChatSectionSuspense({ streamerId }: { streamerId: string }) {
          <div className=" flex-1 min-w-0">
             <StreamSection
                isLive={stream.isLive && !forceToEnd}
+               isLoading={generateToken.isPending}
                playbackId={stream.playbackId}
                thumbnailUrl={stream.thumbnailUrl}
                watchToken={watchToken}

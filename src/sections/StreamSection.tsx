@@ -4,10 +4,11 @@ import { cn } from "@/lib/utils";
 
 import VideoPlayer from "@/components/videos/VideoPlayer";
 import VideoBanner from "@/components/videos/VideoBanner";
-import { WifiOff } from "lucide-react";
+import { Loader, WifiOff } from "lucide-react";
 
 interface StreamSectionProps {
    isLive: boolean;
+   isLoading: boolean;
    playbackId: string;
    thumbnailUrl: string | null;
    watchToken?: string;
@@ -16,6 +17,7 @@ interface StreamSectionProps {
 
 export default function StreamSection({
    isLive,
+   isLoading,
    playbackId,
    thumbnailUrl,
    watchToken,
@@ -28,7 +30,15 @@ export default function StreamSection({
                "aspect-video bg-black rounded-xl overflow-hidden relative"
             )}
          >
-            {isLive ? (
+            {isLoading && (
+               <div className=" h-full flex flex-col space-y-4 justify-center items-center">
+                  <Loader className=" h-10 w-10 text-muted-foreground animate-spin" />
+                  <p className=" text-muted-foreground capitalize">
+                     Stream Loading...
+                  </p>
+               </div>
+            )}
+            {isLive && !isLoading && (
                <VideoPlayer
                   autoPlay
                   token={watchToken}
@@ -36,7 +46,8 @@ export default function StreamSection({
                   thumbnail={thumbnailUrl}
                   onError={onError}
                />
-            ) : (
+            )}
+            {!isLive && !isLoading && (
                <div className=" h-full flex flex-col space-y-4 justify-center items-center">
                   <WifiOff className=" h-10 w-10 text-muted-foreground" />
                   <p className=" text-muted-foreground">
