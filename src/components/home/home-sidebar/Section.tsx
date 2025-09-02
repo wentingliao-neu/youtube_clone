@@ -16,6 +16,7 @@ import {
    HistoryIcon,
    ThumbsUpIcon,
    ListVideoIcon,
+   TvIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -32,6 +33,12 @@ const routes = {
          title: "Trending",
          icon: FlameIcon,
          url: "/feed/trending",
+         auth: false,
+      },
+      {
+         title: "Streams",
+         icon: TvIcon,
+         url: "/feed/streams",
          auth: false,
       },
    ],

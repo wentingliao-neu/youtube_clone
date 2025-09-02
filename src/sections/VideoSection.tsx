@@ -55,7 +55,10 @@ function VideoSectionSuspense({ videoId }: VideoSectionProps) {
                thumbnail={video.thumbnailUrl}
             />
          </div>
-         <VideoBanner status={video.muxStatus} />
+         <VideoBanner
+            status={video.muxStatus}
+            text="This video is still being processed"
+         />
          <VideoTopRow video={video} />
       </>
    );

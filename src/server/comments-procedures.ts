@@ -1,5 +1,5 @@
 import db from "@/db";
-import { commentReactions, comments, users } from "@/db/schema";
+import { blocks, commentReactions, comments, users } from "@/db/schema";
 import {
    baseProcedure,
    createTRPCRouter,
@@ -17,6 +17,7 @@ import {
    inArray,
    isNull,
    isNotNull,
+   notExists,
 } from "drizzle-orm";
 import { z } from "zod";
 
@@ -164,6 +165,19 @@ export const commentsRouter = createTRPCRouter({
                .where(
                   and(
                      eq(comments.videoId, videoId),
+                     userId
+                        ? notExists(
+                             db
+                                .select()
+                                .from(blocks)
+                                .where(
+                                   and(
+                                      eq(blocks.blockerId, userId),
+                                      eq(blocks.blockedId, comments.userId)
+                                   )
+                                )
+                          )
+                        : undefined,
                      parentId
                         ? eq(comments.parentId, parentId)
                         : isNull(comments.parentId),

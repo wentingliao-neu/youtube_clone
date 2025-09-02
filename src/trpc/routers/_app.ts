@@ -11,6 +11,8 @@ import { suggestionsRouter } from "@/server/suggestions-procedures";
 import { searchRouter } from "@/server/search-procedures";
 import { playlistsRouter } from "@/server/playlists-procedures";
 import { usersRouter } from "@/server/users-procedures";
+import { blocksRouter } from "@/server/block-procedures";
+import { streamsRouter } from "@/server/stream-procedures";
 
 export const appRouter = createTRPCRouter({
    categories: categoriesRouter,
@@ -25,6 +27,8 @@ export const appRouter = createTRPCRouter({
    search: searchRouter,
    playlists: playlistsRouter,
    users: usersRouter,
+   blocks: blocksRouter,
+   streams: streamsRouter,
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;

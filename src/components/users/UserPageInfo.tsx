@@ -7,6 +7,10 @@ import SubscriptionButton from "../subscriptions/SubscriptionButton";
 import { useSubscription } from "@/hooks/use-subscription";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "../ui/skeleton";
+import BlockButton from "../block/BlockButton";
+import { useBlock } from "@/hooks/use-block";
+import LiveBadge from "../stream/LiveBadge";
+import { ExternalLink } from "lucide-react";
 
 interface UserPageInfoProps {
    user: UserGetOneOutput;
@@ -14,9 +18,13 @@ interface UserPageInfoProps {
 export default function UserPageInfo({ user }: UserPageInfoProps) {
    const clerk = useClerk();
    const { userId, isLoaded } = useAuth();
-   const { isPending, onClick } = useSubscription({
-      userId: user.clerkId,
+   const { isPending: isSubPending, onClick: onClickSub } = useSubscription({
+      userId: user.id,
       isSubscribed: user.viewerSubscribed,
+   });
+   const { isPending: isBlockPending, onClick: onClickBlock } = useBlock({
+      userId: user.id,
+      isBlocked: user.viewerBlocked,
    });
    return (
       <div className=" py-6">
@@ -27,10 +35,12 @@ export default function UserPageInfo({ user }: UserPageInfoProps) {
                   imageUrl={user.imageUrl}
                   className="h-[60px] w-[60px]"
                   name={user.name}
+                  isLive={user.isLive}
                   onClick={() => {
                      if (user.clerkId === userId) clerk.openUserProfile({});
                   }}
                />
+               {user.isLive && <LiveBadge />}
                <div className=" flex-1 min-w-0">
                   <h1 className=" text-xl font-bold">{user.name}</h1>
                   <div className=" flex items-center gap-1 text-xs text-muted-foreground mt-1">
@@ -52,15 +62,36 @@ export default function UserPageInfo({ user }: UserPageInfoProps) {
                   </Link>
                </Button>
             ) : (
-               <SubscriptionButton
-                  onClick={onClick}
-                  disabled={isPending || !isLoaded}
-                  isSubscribed={user.viewerSubscribed}
-                  className="  w-full mt-3"
-               />
+               <>
+                  <SubscriptionButton
+                     onClick={onClickSub}
+                     disabled={isSubPending || !isLoaded}
+                     isSubscribed={user.viewerSubscribed}
+                     className=" mt-3"
+                  />
+                  <BlockButton
+                     style="full"
+                     onClick={onClickBlock}
+                     disabled={isBlockPending || !isLoaded}
+                     isBlocked={user.viewerBlocked}
+                     className=" mt-3"
+                  />
+                  {user.isLive && (
+                     <Link
+                        prefetch
+                        href={`/stream/${user.id}`}
+                        className={
+                           "bg-rose-500 text-center p-0.5 px-1.5 rounded-md uppercase text-[10px] border border-background font-semibold mt-3"
+                        }
+                     >
+                        Go to stream room
+                     </Link>
+                  )}
+               </>
             )}
          </div>
-         <div className=" hidden md:flex  items-start gap-4 justify-center">
+         {/* Desktop layout */}
+         <div className="hidden md:flex items-start gap-4 justify-center">
             <UserAvatar
                size={"xl"}
                imageUrl={user.imageUrl}
@@ -72,12 +103,29 @@ export default function UserPageInfo({ user }: UserPageInfoProps) {
                onClick={() => {
                   if (user.clerkId === userId) clerk.openUserProfile({});
                }}
+               isLive={user.isLive}
             />
+
             <div className=" flex-1 min-w-0">
-               <h1 className=" text-4xl font-bold">{user.name}</h1>
+               <div className=" flex items-center gap-2">
+                  <h1 className=" text-4xl font-bold">{user.name}</h1>
+                  {user.isLive && (
+                     <Link prefetch href={`/stream/${user.id}`}>
+                        <Button
+                           variant="secondary"
+                           className={
+                              "bg-rose-500 text-center p-0.5 px-1.5 rounded-md  border border-background font-semibold "
+                           }
+                        >
+                           <ExternalLink className=" size-4" />
+                           Go to stream room
+                        </Button>
+                     </Link>
+                  )}
+               </div>
                <div className=" flex items-center gap-1 text-sm text-muted-foreground mt-3">
                   <span>
-                     {user.subscriberCount} subscribers &bull; {user.videoCount}
+                     {user.subscriberCount} subscribers &bull; {user.videoCount}{" "}
                      videos
                   </span>
                </div>
@@ -92,12 +140,21 @@ export default function UserPageInfo({ user }: UserPageInfoProps) {
                      </Link>
                   </Button>
                ) : (
-                  <SubscriptionButton
-                     onClick={onClick}
-                     disabled={isPending || !isLoaded}
-                     isSubscribed={user.viewerSubscribed}
-                     className="mt-3"
-                  />
+                  <>
+                     <SubscriptionButton
+                        onClick={onClickSub}
+                        disabled={isSubPending || !isLoaded}
+                        isSubscribed={user.viewerSubscribed}
+                        className="mt-3 w-24 mr-2"
+                     />
+                     <BlockButton
+                        style="full"
+                        onClick={onClickBlock}
+                        disabled={isBlockPending || !isLoaded}
+                        isBlocked={user.viewerBlocked}
+                        className="mt-3 w-24"
+                     />
+                  </>
                )}
             </div>
          </div>

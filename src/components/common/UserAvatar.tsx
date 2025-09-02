@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarImage } from "../ui/avatar";
 import { cva, type VariantProps } from "class-variance-authority";
+import LiveBadge from "../stream/LiveBadge";
+import { Skeleton } from "../ui/skeleton";
 
 const avatarVariants = cva("", {
    variants: {
@@ -22,6 +24,7 @@ interface Props extends VariantProps<typeof avatarVariants> {
    name: string;
    className?: string;
    onClick?: () => void;
+   isLive?: boolean;
 }
 
 export default function UserAvatar({
@@ -30,13 +33,29 @@ export default function UserAvatar({
    className,
    onClick,
    size,
+   isLive = false,
 }: Props) {
    return (
-      <Avatar
-         className={cn(avatarVariants({ size, className }))}
-         onClick={onClick}
-      >
-         <AvatarImage src={imageUrl} alt={name} />
-      </Avatar>
+      <div className=" relative">
+         <Avatar
+            className={cn(avatarVariants({ size, className }))}
+            onClick={onClick}
+         >
+            <AvatarImage src={imageUrl} alt={name} />
+         </Avatar>
+         {isLive && (
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 transform">
+               <LiveBadge />
+            </div>
+         )}
+      </div>
    );
+}
+
+export function UserAvatarSkeleton({
+   size,
+}: {
+   size: VariantProps<typeof avatarVariants>["size"];
+}) {
+   return <Skeleton className={cn("rounded-full", avatarVariants({ size }))} />;
 }

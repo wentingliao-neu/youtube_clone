@@ -1,8 +1,8 @@
 import db from "@/db";
-import { subscriptions, users, videos, videoViews } from "@/db/schema";
+import { streams, subscriptions, users } from "@/db/schema";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
-import { eq, and, desc, getTableColumns, lt, or } from "drizzle-orm";
+import { eq, and, desc, getTableColumns, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 export const subscriptionsRouter = createTRPCRouter({
@@ -57,10 +57,10 @@ export const subscriptionsRouter = createTRPCRouter({
       .query(async ({ input, ctx }) => {
          const { cursor, limit } = input;
          const { id: userId } = ctx.user;
-         const viewCountSubquery = db.$count(
-            videoViews,
-            eq(videoViews.videoId, videos.id)
-         );
+         // const viewCountSubquery = db.$count(
+         //    videoViews,
+         //    eq(videoViews.videoId, videos.id)
+         // );
 
          const viewerSubscriptions = db
             .$with("viewer_subscriptions")
@@ -81,10 +81,16 @@ export const subscriptionsRouter = createTRPCRouter({
                      subscriptions,
                      eq(subscriptions.creatorId, users.id)
                   ),
+                  isLive:
+                     sql<boolean>`COALESCE(${streams.isLive}, false)`.mapWith(
+                        Boolean
+                     ),
                },
             })
             .from(subscriptions)
             .innerJoin(users, eq(users.id, subscriptions.creatorId))
+            // .innerJoin(videos, eq(videos.userId, subscriptions.creatorId))
+            .leftJoin(streams, eq(streams.userId, subscriptions.creatorId))
             .where(
                and(
                   eq(subscriptions.viewerId, userId),
@@ -100,7 +106,7 @@ export const subscriptionsRouter = createTRPCRouter({
                )
             )
             .orderBy(
-               desc(viewCountSubquery),
+               // desc(viewCountSubquery),
                desc(subscriptions.updatedAt),
                desc(subscriptions.creatorId)
             )

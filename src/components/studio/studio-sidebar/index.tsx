@@ -8,10 +8,31 @@ import {
    SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { LogOutIcon, VideoIcon } from "lucide-react";
+import { Clapperboard, LogOutIcon, UsersIcon, VideoIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import StudioSidebarHeader from "./StudioSidebarHeader";
+
+const menuItems = [
+   {
+      label: "Content",
+      tooltip: "View Contents",
+      icon: VideoIcon,
+      href: "/studio",
+   },
+   {
+      label: "Black List",
+      tooltip: "Manage Black List",
+      icon: UsersIcon,
+      href: "/studio/blacklist",
+   },
+   {
+      label: "Stream",
+      tooltip: "Manage Stream",
+      icon: Clapperboard,
+      href: "/studio/stream",
+   },
+];
 
 export default function StudioSidebar() {
    const pathname = usePathname();
@@ -21,18 +42,21 @@ export default function StudioSidebar() {
             <SidebarGroup>
                <SidebarMenu>
                   <StudioSidebarHeader />
-                  <SidebarMenuItem>
-                     <SidebarMenuButton
-                        isActive={pathname === "/studio"}
-                        tooltip="View Contents"
-                        asChild
-                     >
-                        <Link prefetch href="/studio">
-                           <VideoIcon className="size-5" />
-                           <span className=" text-sm">Content</span>
-                        </Link>
-                     </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  {menuItems.map((item) => (
+                     <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                           isActive={pathname === item.href}
+                           tooltip={item.tooltip}
+                           asChild
+                        >
+                           <Link prefetch href={item.href}>
+                              <item.icon className="size-5" />
+                              <span className=" text-sm">{item.label}</span>
+                           </Link>
+                        </SidebarMenuButton>
+                     </SidebarMenuItem>
+                  ))}
+
                   <Separator />
                   <SidebarMenuItem>
                      <SidebarMenuButton tooltip="Exit studio" asChild>
